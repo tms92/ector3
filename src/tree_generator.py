@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """
-Tree Generator module for Ecotr3 - Directory Structure Visualization Tool
+Enhanced Tree Generator module for Ecotr3 - Directory Structure Visualization Tool
 
 This module provides functionality to generate a text-based tree representation
-of directory structures, with support for ignoring specific files and directories.
+of directory structures with advanced statistics, supporting file exclusion patterns.
 """
 
 import os
 import fnmatch
+from collections import defaultdict
+
 
 def should_ignore(path, ignore_patterns):
     """
@@ -31,14 +33,81 @@ def should_ignore(path, ignore_patterns):
     
     return False
 
-def generate_directory_tree(root_dir, ignore_patterns=None, max_depth=None):
+
+def calculate_directory_stats(directory, ignore_patterns=None):
     """
-    Generate a text representation of the directory tree.
+    Calculate directory statistics recursively.
+
+    Args:
+        directory (str): Directory to analyze
+        ignore_patterns (list, optional): Patterns of files/directories to ignore
+
+    Returns:
+        dict: Statistics including file count, directory count, total size, etc.
+    """
+    stats = defaultdict(int)
+    stats['max_depth'] = 0
+    stats['extensions'] = defaultdict(int)
+    
+    def _analyze_directory(current_dir, current_depth=0):
+        # Update max depth
+        stats['max_depth'] = max(stats['max_depth'], current_depth)
+        
+        try:
+            entries = os.listdir(current_dir)
+        except (PermissionError, FileNotFoundError):
+            return
+            
+        for entry in entries:
+            full_path = os.path.join(current_dir, entry)
+            
+            # Skip ignored entries
+            if ignore_patterns and should_ignore(full_path, ignore_patterns):
+                continue
+                
+            if os.path.isdir(full_path):
+                stats['dir_count'] += 1
+                _analyze_directory(full_path, current_depth + 1)
+            else:
+                stats['file_count'] += 1
+                try:
+                    stats['total_size'] += os.path.getsize(full_path)
+                    # Track file extensions
+                    _, ext = os.path.splitext(entry)
+                    if ext:
+                        stats['extensions'][ext.lower()] += 1
+                except (OSError, FileNotFoundError):
+                    pass
+    
+    _analyze_directory(directory)
+    return stats
+
+
+def format_size(size_bytes):
+    """
+    Format size in bytes to human-readable format.
+
+    Args:
+        size_bytes (int): Size in bytes
+
+    Returns:
+        str: Human-readable size string (e.g., "4.2 MB")
+    """
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if size_bytes < 1024 or unit == 'TB':
+            return f"{size_bytes:.2f} {unit}".rstrip('0').rstrip('.') + ' ' + unit
+        size_bytes /= 1024
+
+
+def generate_directory_tree(root_dir, ignore_patterns=None, max_depth=None, include_stats=False):
+    """
+    Generate a text representation of the directory tree with optional statistics.
 
     Args:
         root_dir (str): Root directory to start generating the tree from
         ignore_patterns (list, optional): Patterns of files/directories to ignore
         max_depth (int, optional): Maximum depth of directory traversal
+        include_stats (bool, optional): Whether to include directory statistics
 
     Returns:
         str: Formatted text representation of the directory tree
@@ -58,6 +127,11 @@ def generate_directory_tree(root_dir, ignore_patterns=None, max_depth=None):
     
     # Tree output will be built in this list
     tree_lines = [os.path.basename(root_dir)]
+
+    # Statistics for the directory structure
+    stats = None
+    if include_stats:
+        stats = calculate_directory_stats(root_dir, ignore_patterns)
 
     def _generate_tree(directory, prefix='', depth=0):
         """
@@ -112,9 +186,30 @@ def generate_directory_tree(root_dir, ignore_patterns=None, max_depth=None):
     # Start generating tree from root directory
     _generate_tree(root_dir)
 
+    # Append statistics if requested
+    if include_stats and stats:
+        tree_lines.append("\n" + "=" * 40)
+        tree_lines.append("Directory Statistics:")
+        tree_lines.append(f"Total Files: {stats['file_count']}")
+        tree_lines.append(f"Total Directories: {stats['dir_count']}")
+        tree_lines.append(f"Maximum Depth: {stats['max_depth']}")
+        tree_lines.append(f"Total Size: {format_size(stats['total_size'])}")
+        
+        # Add most common file extensions
+        if stats['extensions']:
+            tree_lines.append("\nTop File Extensions:")
+            sorted_extensions = sorted(
+                stats['extensions'].items(), 
+                key=lambda x: x[1], 
+                reverse=True
+            )[:5]  # Show top 5 extensions
+            
+            for ext, count in sorted_extensions:
+                tree_lines.append(f"  {ext}: {count} files")
+
     # Convert tree lines to a single string
     return '\n'.join(tree_lines)
 
 # Optional: If script is run directly, demonstrate functionality
 if __name__ == '__main__':
-    print(generate_directory_tree(os.getcwd()))
+    print(generate_directory_tree(os.getcwd(), include_stats=True))

@@ -34,8 +34,8 @@ setup(
     ],
     python_requires='>=3.7',
     install_requires=[
-        # Add any external dependencies here
-        # For example: 'click>=7.0',
+        # External dependencies
+        'pyperclip>=1.8.0',
     ],
     extras_require={
         'dev': [
