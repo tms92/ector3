@@ -12,7 +12,7 @@ import pytest
 # Add the project root to Python path for importing
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.tree_generator import generate_directory_tree, calculate_directory_stats, format_size
+from src.ecotr3.tree_generator import generate_directory_tree, calculate_directory_stats, format_size
 
 class TestDirectoryStatistics:
     """Test class for enhanced directory statistics functionality"""

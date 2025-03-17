@@ -119,8 +119,9 @@ def show_help():
     """
     Display help information for Ecotr3.
     """
-    help_text = """
-Ecotr3 - Directory Structure Visualization Tool
+    version = get_version()
+    help_text = f"""
+Ecotr3 - Directory Structure Visualization Tool (v{version})
 
 Usage:
   ector3 print [--stats] [--depth DEPTH]  - Display directory tree in console
@@ -137,6 +138,35 @@ For more information, visit: https://github.com/tms92/ecotr3
 """
     print(help_text)
 
+def get_version():
+    """
+    Reads the version from the VERSION file.
+    
+    Returns:
+        str: The current version of the application
+    """
+    # Try multiple possible locations for the VERSION file
+    possible_paths = [
+        # Current directory
+        'VERSION',
+        # One directory up (package root when installed)
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'VERSION'),
+        # Two directories up (package root during development)
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'VERSION'),
+        # Absolute path from package directory
+        os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'VERSION')
+    ]
+
+    for path in possible_paths:
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                version = f.read().strip()
+                return version
+        except (IOError, FileNotFoundError):
+            continue
+            
+    return "unknown"
+
 def main():
     """
     Main CLI entry point for Ecotr3.
@@ -144,7 +174,7 @@ def main():
     """
     parser = argparse.ArgumentParser(description='Ecotr3 - Directory Structure Visualization Tool')
     parser.add_argument('command', nargs='?', default='help', 
-                        choices=['print', 'create', 'copy', 'help', 'ignorefile'],
+                        choices=['print', 'create', 'copy', 'help', 'ignorefile', 'version'],
                         help='Command to execute')
     parser.add_argument('subcommand', nargs='?', help='Subcommand for specific actions')
     parser.add_argument('--stats', action='store_true', help='Include directory statistics')
@@ -161,11 +191,10 @@ def main():
         copy_to_clipboard(stats=args.stats, max_depth=args.depth)
     elif args.command == 'help':
         show_help()
+    elif args.command == 'version':
+        print(f"Ecotr3 version {get_version()}")
     elif args.command == 'ignorefile':
         if args.subcommand == 'create':
             create_ignore_file()
         else:
             print("Invalid subcommand. Use 'ector3 ignorefile create'")
-
-if __name__ == '__main__':
-    main()

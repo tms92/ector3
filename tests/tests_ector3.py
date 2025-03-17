@@ -15,8 +15,8 @@ import pytest
 # Add the project root to Python path for importing
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.tree_generator import generate_directory_tree, should_ignore
-from src.ignore_handler import load_ignore_file, validate_ignore_pattern, is_path_ignored
+from src.ecotr3.tree_generator import generate_directory_tree, should_ignore
+from src.ecotr3.ignore_handler import load_ignore_file, validate_ignore_pattern, is_path_ignored
 
 class TestEcotr3:
     """
